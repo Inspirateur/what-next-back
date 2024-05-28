@@ -53,3 +53,30 @@ pub struct NewOeuvre {
     pub synopsis: Option<String>,
     pub picture: Option<String>
 }
+
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = crate::schema::tags)]
+pub struct Tag {
+    pub id: i32,
+    pub label: String
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::tags)]
+pub struct NewTag {
+    pub label: String
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::oeuvre_tags)]
+pub struct OeuvreTag {
+    pub oeuvre_id: i32,
+    pub tag_id: i32,
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::imdb_map)]
+pub struct ImdbMap {
+    pub oeuvre_id: i32,
+    pub imdb_id: String,
+}

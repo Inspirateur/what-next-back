@@ -8,5 +8,5 @@ edition = "2021"
 [dependencies]
 dotenvy = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
-diesel = { version = "*", features = ["sqlite"] }
+diesel = { version = "*", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
 rocket = "*"

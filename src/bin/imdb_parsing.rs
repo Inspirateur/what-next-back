@@ -1,4 +1,4 @@
-use what_next_back::{create_oeuvre, establish_connection, models::{Medium, NewOeuvre}};
+use what_next_back::{add_imdb_oeuvre, establish_connection, models::{Medium, NewOeuvre}};
 
 fn main() {
     // Just some diesel test code
@@ -11,5 +11,5 @@ fn main() {
         picture: None   
     };
 
-    create_oeuvre(connection, new_oeuvre);
+    add_imdb_oeuvre(connection, new_oeuvre, "test_id".to_string());
 }
