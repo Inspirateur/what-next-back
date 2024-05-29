@@ -47,9 +47,9 @@ pub struct Oeuvre {
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::oeuvres)]
-pub struct NewOeuvre {
+pub struct NewOeuvre<'a> {
     pub medium: Medium,
-    pub title: String,
+    pub title: &'a str,
     pub synopsis: Option<String>,
     pub picture: Option<String>
 }
@@ -74,9 +74,16 @@ pub struct OeuvreTag {
     pub tag_id: i32,
 }
 
-#[derive(Queryable, Selectable, Insertable)]
+#[derive(Queryable, Selectable)]
 #[diesel(table_name = crate::schema::imdb_map)]
 pub struct ImdbMap {
     pub oeuvre_id: i32,
     pub imdb_id: String,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::imdb_map)]
+pub struct NewImdbMap<'a> {
+    pub oeuvre_id: i32,
+    pub imdb_id: &'a str,
 }
