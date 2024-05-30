@@ -19,6 +19,7 @@ diesel::table! {
         id -> Integer,
         medium -> Integer,
         title -> Text,
+        rating -> Nullable<Integer>,
         synopsis -> Nullable<Text>,
         picture -> Nullable<Text>,
     }

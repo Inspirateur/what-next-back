@@ -41,6 +41,7 @@ pub struct Oeuvre {
     pub id: i32,
     pub medium: Medium,
     pub title: String,
+    pub rating: Option<i32>,
     pub synopsis: Option<String>,
     pub picture: Option<String>
 }
@@ -50,6 +51,7 @@ pub struct Oeuvre {
 pub struct NewOeuvre<'a> {
     pub medium: Medium,
     pub title: &'a str,
+    pub rating: Option<i32>,
     pub synopsis: Option<String>,
     pub picture: Option<String>
 }

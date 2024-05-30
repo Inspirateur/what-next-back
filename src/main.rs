@@ -7,13 +7,14 @@ fn main() {
 
     let connection: &mut diesel::prelude::SqliteConnection = &mut establish_connection();
     let results: Vec<Oeuvre> = oeuvres
-        .limit(5)
+        .order(rating.desc())
+        .limit(10)
         .select(Oeuvre::as_select())
         .load(connection)
         .expect("Error loading oeuvres");
 
-    println!("Displaying {} oeuvres", results.len());
+    println!("Displaying {} best rated oeuvres", results.len());
     for oeuvre in results {
-        println!("[{:?}] {}", oeuvre.medium, oeuvre.title);
+        println!("[{:?}] {} {}%", oeuvre.medium, oeuvre.title, oeuvre.rating.unwrap_or(50));
     }
 }
