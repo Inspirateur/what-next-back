@@ -3,4 +3,4 @@ CREATE TABLE imdb_map (
   imdb_id TEXT NOT NULL UNIQUE,
   PRIMARY KEY (oeuvre_id, imdb_id),
   FOREIGN KEY (oeuvre_id) REFERENCES oeuvres(id)
-)
+);

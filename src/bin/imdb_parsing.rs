@@ -9,7 +9,6 @@ fn main() {
 }
 
 // Download "title.basics.tsv" from https://datasets.imdbws.com/ before running this (and set the file path accordingly)
-// NOTE: The file is BIG, run it in release mode
 fn seed_imdb_oeuvres() {
     let Ok(mut rdr) = csv::ReaderBuilder::new().delimiter(b'\t').from_path("data/title.basics.tsv") else {
         println!("couldn't find or open title.basics.tsv");
@@ -148,7 +147,7 @@ fn get_imdb_name_map() -> Option<HashMap<String, String>> {
 
 // Download "title.ratings.tsv" from https://datasets.imdbws.com/ before running this (and set the file pathes accordingly)
 fn seed_imdb_ratings() {
-    // empirical number that biases rating towards really popular oeuvre
+    // empirical number that biases ratings in favor of really popular work
     const VIRTUAL_RATINGS: f32 = 1000.;
 
     let Ok(mut rdr) = csv::ReaderBuilder::new().delimiter(b'\t').from_path("data/title.ratings.tsv") else {

@@ -1,1 +1,1 @@
-DROP TABLE imdb_map
+DROP TABLE imdb_map;

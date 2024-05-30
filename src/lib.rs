@@ -1,5 +1,7 @@
 pub mod models;
 pub mod schema;
+pub mod api_models;
+pub mod jwt_auth;
 use diesel::prelude::*;
 use dotenvy::dotenv;
 use models::{ImdbMap, NewOeuvre, NewTag, Oeuvre, OeuvreTag, Tag};

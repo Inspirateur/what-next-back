@@ -5,4 +5,4 @@ CREATE TABLE oeuvres (
   rating INTEGER,
   synopsis TEXT,
   picture TEXT
-)
+);

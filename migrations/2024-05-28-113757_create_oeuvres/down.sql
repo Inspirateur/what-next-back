@@ -1,1 +1,1 @@
-DROP TABLE oeuvres
+DROP TABLE oeuvres;
