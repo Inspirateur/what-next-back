@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+argon2 = { version = "*", features = ["std"] }
 chrono = "*"
 serde = { version = "*", features = ["derive"] }
 serde_json = "*"
@@ -14,4 +15,4 @@ dotenvy = "*"
 jsonwebtoken = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 diesel = { version = "*", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
-rocket = "*"
+rocket = { version = "*", features = ["json"] }

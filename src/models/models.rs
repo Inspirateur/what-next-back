@@ -1,6 +1,7 @@
 use diesel::{deserialize::{self, FromSqlRow}, expression::AsExpression, prelude::*, serialize, sql_types::Integer, sqlite::{Sqlite, SqliteValue}};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, FromSqlRow, AsExpression, Clone, Copy)]
+#[derive(Debug, FromSqlRow, AsExpression, Clone, Copy, Serialize, Deserialize)]
 #[diesel(sql_type = Integer)]
 #[repr(i32)]
 pub enum Medium {
@@ -34,7 +35,7 @@ impl deserialize::FromSql<Integer, Sqlite> for Medium {
     }
 }
 
-#[derive(Queryable, Selectable)]
+#[derive(Queryable, Selectable, Serialize)]
 #[diesel(table_name = crate::schema::oeuvres)]
 #[diesel(check_for_backend(diesel::sqlite::Sqlite))]
 pub struct Oeuvre {
@@ -88,4 +89,29 @@ pub struct ImdbMap {
 pub struct NewImdbMap<'a> {
     pub oeuvre_id: i32,
     pub imdb_id: &'a str,
+}
+
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = crate::schema::users)]
+pub struct User {
+    pub id: i32,
+    pub username: String,
+    pub pwd_hash: Vec<u8>,
+    pub pwd_salt: Vec<u8>,
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = crate::schema::users)]
+pub struct NewUser<'a> {
+    pub username: &'a str,
+    pub pwd_hash: &'a [u8],
+    pub pwd_salt: &'a [u8],
+}
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::user_ratings)]
+pub struct UserRating {
+    pub user_id: i32,
+    pub oeuvre_id: i32,
+    pub rating: i32,
 }

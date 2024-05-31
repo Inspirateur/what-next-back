@@ -1,18 +1,16 @@
-// https://medium.com/@jeynesbrook/jwt-authentication-for-api-routes-using-rocket-rs-and-rust-fe7529792a70
-// https://github.com/BrookJeynes/rust-blog-using-rocket/blob/route-authentication/application/src/auth.rs
+// inspired by: https://github.com/BrookJeynes/rust-blog-using-rocket/blob/route-authentication/application/src/auth.rs
+// but simplified
 use chrono::Utc;
 use rocket::http::Status;
 use rocket::request::{Outcome, Request, FromRequest};
 use rocket::serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
-use jsonwebtoken::errors::{Error, ErrorKind};
-use crate::api_models::{Response, ResponseBody, NetworkResponse};
 use std::env;
 use dotenvy::dotenv;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Claims {
-    pub subject_id: i32,
+    pub user_id: i32,
     exp: usize
 }
 
@@ -23,65 +21,48 @@ pub struct JWT {
 
 #[rocket::async_trait]
 impl<'r> FromRequest<'r> for JWT {
-    type Error = NetworkResponse;
+    type Error = jsonwebtoken::errors::Error;
 
-    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, NetworkResponse> {
-        fn is_valid(key: &str) -> Result<Claims, Error> {
+    async fn from_request(req: &'r Request<'_>) -> Outcome<Self, Self::Error> {
+        fn is_valid(key: &str) -> Result<Claims, jsonwebtoken::errors::Error> {
             Ok(decode_jwt(String::from(key))?)
         }
 
         match req.headers().get_one("authorization") {
-            None => {
-                let response = Response { body: ResponseBody::Message(String::from("Error validating JWT token - No token provided"))};
-                Outcome::Failure((Status::BadRequest, NetworkResponse::BadRequest(serde_json::to_string(&response).unwrap()))) 
-            },
+            None => Outcome::Error((Status::BadRequest, jsonwebtoken::errors::ErrorKind::InvalidToken.into())),
             Some(key) => match is_valid(key) {
                 Ok(claims) => Outcome::Success(JWT {claims}),
-                Err(err) => match &err.kind() {
-                    jsonwebtoken::errors::ErrorKind::ExpiredSignature => {
-                        let response = Response { body: ResponseBody::Message(format!("Error validating JWT token - Expired Token"))};
-                        Outcome::Failure((Status::BadRequest, NetworkResponse::BadRequest(serde_json::to_string(&response).unwrap()))) 
-                    },
-                    jsonwebtoken::errors::ErrorKind::InvalidToken => {
-                        let response = Response { body: ResponseBody::Message(format!("Error validating JWT token - Invalid Token"))};
-                        Outcome::Failure((Status::BadRequest, NetworkResponse::BadRequest(serde_json::to_string(&response).unwrap()))) 
-                    },
-                    _ => {
-                        let response = Response { body: ResponseBody::Message(format!("Error validating JWT token - {}", err))};
-                        Outcome::Failure((Status::BadRequest, NetworkResponse::BadRequest(serde_json::to_string(&response).unwrap()))) 
-                    }
-                }
+                Err(err) => Outcome::Error((Status::BadRequest, err)),
             },
         }
     }
 }
 
-fn decode_jwt(token: String) -> Result<Claims, ErrorKind> {
+fn decode_jwt(token: String) -> Result<Claims, jsonwebtoken::errors::Error> {
     dotenv().ok();
+
+    println!("test");
 
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set.");
     let token = token.trim_start_matches("Bearer").trim();
 
-    match decode::<Claims>(
+    decode::<Claims>(
         &token,
         &DecodingKey::from_secret(secret.as_bytes()),
         &Validation::new(Algorithm::HS512),
-    ) {
-            Ok(token) => Ok(token.claims),
-            Err(err) => Err(err.kind().to_owned())
-        }
+    ).map(|token| token.claims)
 }
 
-pub fn create_jwt(id: i32) -> Result<String, Error> {
+pub fn create_jwt(id: i32) -> Result<String, jsonwebtoken::errors::Error> {
     dotenv().ok();
 
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set.");
-
-    let expiration = Utc::now().checked_add_signed(chrono::Duration::seconds(60)).expect("Invalid timestamp").timestamp();
+    // the token lasts half a year because stakes are low
+    let expiration = Utc::now().checked_add_signed(chrono::Duration::weeks(26)).expect("Invalid timestamp").timestamp();
     let claims = Claims {
-        subject_id: id,
+        user_id: id,
         exp: expiration as usize
-    }; 
+    };
 
     let header = Header::new(Algorithm::HS512);
 
