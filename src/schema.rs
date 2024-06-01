@@ -41,11 +41,26 @@ diesel::table! {
 }
 
 diesel::table! {
+    user_tags_similarity (user_id, tag_id) {
+        user_id -> Integer,
+        tag_id -> Integer,
+        score -> Integer,
+    }
+}
+
+diesel::table! {
     users (id) {
         id -> Integer,
         username -> Text,
-        pwd_hash -> Binary,
-        pwd_salt -> Binary,
+        phc -> Text,
+    }
+}
+
+diesel::table! {
+    users_similarity (user1_id, user2_id) {
+        user1_id -> Integer,
+        user2_id -> Integer,
+        score -> Integer,
     }
 }
 
@@ -54,6 +69,8 @@ diesel::joinable!(oeuvre_tags -> oeuvres (oeuvre_id));
 diesel::joinable!(oeuvre_tags -> tags (tag_id));
 diesel::joinable!(user_ratings -> oeuvres (oeuvre_id));
 diesel::joinable!(user_ratings -> users (user_id));
+diesel::joinable!(user_tags_similarity -> tags (tag_id));
+diesel::joinable!(user_tags_similarity -> users (user_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     imdb_map,
@@ -61,5 +78,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     oeuvres,
     tags,
     user_ratings,
+    user_tags_similarity,
     users,
+    users_similarity,
 );

@@ -1,8 +1,7 @@
 CREATE TABLE users (
   id INTEGER PRIMARY KEY NOT NULL,
   username TEXT NOT NULL UNIQUE,
-  pwd_hash BLOB NOT NULL,
-  pwd_salt BLOB NOT NULL
+  phc TEXT NOT NULL
 );
 
 CREATE TABLE user_ratings (

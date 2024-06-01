@@ -96,16 +96,16 @@ pub struct NewImdbMap<'a> {
 pub struct User {
     pub id: i32,
     pub username: String,
-    pub pwd_hash: Vec<u8>,
-    pub pwd_salt: Vec<u8>,
+    // PHC string format stores hash, salt, and algorithm used for hashing
+    // https://github.com/P-H-C/phc-string-format/blob/master/phc-sf-spec.md
+    pub phc: String,
 }
 
 #[derive(Insertable)]
 #[diesel(table_name = crate::schema::users)]
 pub struct NewUser<'a> {
     pub username: &'a str,
-    pub pwd_hash: &'a [u8],
-    pub pwd_salt: &'a [u8],
+    pub phc: &'a str,
 }
 
 #[derive(Queryable, Selectable, Insertable)]
