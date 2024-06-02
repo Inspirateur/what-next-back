@@ -1,8 +1,9 @@
 use diesel::prelude::*;
 use super::{Tag, NewTag, OeuvreTag};
-use crate::schema::{oeuvres, tags, oeuvre_tags};
 
 pub fn add_tag(conn: &mut SqliteConnection, oeuvre_id: i32, tag_label: String) -> diesel::result::QueryResult<()> {
+    use crate::schema::{tags, oeuvre_tags};
+
     let tag: Tag = if let Some(tag) = tags::table.filter(tags::label.eq(tag_label.clone())).first(conn).optional()? {
         tag
     } else {
@@ -26,6 +27,8 @@ pub fn add_tag(conn: &mut SqliteConnection, oeuvre_id: i32, tag_label: String) -
 }
 
 pub fn update_rating(conn: &mut SqliteConnection, oeuvre_id: i32, rating_on_100: i32) -> diesel::result::QueryResult<()> {
+    use crate::schema::oeuvres;
+
     diesel::update(oeuvres::table.find(oeuvre_id)).set(oeuvres::rating.eq(rating_on_100)).execute(conn)?;
     diesel::result::QueryResult::Ok(())
 }

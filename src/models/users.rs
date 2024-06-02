@@ -5,8 +5,6 @@ use argon2::{
     }, Argon2, PasswordHash, PasswordVerifier
 };
 use diesel::prelude::*;
-use crate::schema::user_ratings;
-
 use super::{User, UserRating, NewUser};
 
 /// Returns the newly created user id
@@ -72,17 +70,35 @@ pub fn change_pwd(conn: &mut SqliteConnection, username: &str, old_pwd: &str, ne
 
 /// Returns the previous rating if there was any
 pub fn update_user_rating(conn: &mut SqliteConnection, user_id: i32, oeuvre_id: i32, rating: i32) -> diesel::result::QueryResult<Option<i32>> {
-    use crate::schema::user_ratings::dsl;
-    if let Ok(user_rating) = user_ratings::table.filter(dsl::user_id.eq(user_id)).filter(dsl::oeuvre_id.eq(oeuvre_id)).first::<UserRating>(conn) {
+    use crate::schema::user_ratings;
+    if let Ok(user_rating) = user_ratings::table.filter(user_ratings::user_id.eq(user_id))
+        .filter(user_ratings::oeuvre_id.eq(oeuvre_id))
+        .first::<UserRating>(conn) 
+    {
+        diesel::update(user_ratings::table
+            .filter(user_ratings::user_id.eq(user_id))
+            .filter(user_ratings::oeuvre_id.eq(oeuvre_id)))
+            .set(user_ratings::rating.eq(rating))
+            .execute(conn)?;
+        diesel::result::QueryResult::Ok(Some(user_rating.rating))
+    } else {
         diesel::insert_into(user_ratings::table)
             .values(&UserRating {
                 user_id, oeuvre_id, rating
             })
             .execute(conn)?;
-        diesel::result::QueryResult::Ok(Some(user_rating.rating))
-    } else {
-        diesel::update(user_ratings::table.filter(dsl::user_id.eq(user_id)).filter(dsl::oeuvre_id.eq(oeuvre_id)))
-            .set(user_ratings::rating.eq(rating)).execute(conn)?;
         diesel::result::QueryResult::Ok(None)
     }
+}
+
+/// Returns the previous rating if there was any
+pub fn remove_user_rating(conn: &mut SqliteConnection, user_id: i32, oeuvre_id: i32) -> diesel::result::QueryResult<Option<i32>> {
+    use crate::schema::user_ratings;
+
+    diesel::delete(
+    user_ratings::table
+            .filter(user_ratings::user_id.eq(user_id))
+            .filter(user_ratings::oeuvre_id.eq(oeuvre_id))
+    ).returning(user_ratings::rating).get_result(conn).optional()
+    // diesel::result::QueryResult::Ok(())
 }

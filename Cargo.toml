@@ -15,3 +15,4 @@ jsonwebtoken = "*"
 libsqlite3-sys = { version = "*", features = ["bundled"] }
 diesel = { version = "*", features = ["sqlite", "returning_clauses_for_sqlite_3_35"] }
 rocket = { version = "*", features = ["json"] }
+log = "*"

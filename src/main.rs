@@ -1,8 +1,9 @@
-use diesel::{prelude::*, result::DatabaseErrorKind};
+use diesel::result::DatabaseErrorKind;
 use rocket::{http::Status, launch, post, routes, serde::json::Json};
-use what_next_back::{
-    add_user, update_user_rating, api_models::{CredentialRequest, RateRequest}, check_credential, establish_connection, jwt_auth::{create_jwt, JWT}, models::Oeuvre, Medium
-};
+use log::warn;
+use api_models::*;
+use jwt_auth::*;
+use what_next_back::*;
 
 #[post("/signup", format = "application/json", data = "<user>")]
 fn sign_up(user: Json<CredentialRequest>) -> Result<String, Status> {
@@ -29,24 +30,38 @@ fn login(user: Json<CredentialRequest>) -> Result<String, Status> {
 
 #[post("/reco", format = "application/json", data = "<medium>")]
 fn reco(jwt: JWT, medium: Json<Medium>) -> Result<String, Status> {
-    // TODO: do a recommendation based on user id in jwt.claims.user_id & medium
-    use what_next_back::schema::oeuvres::dsl::*;
     let connection: &mut diesel::prelude::SqliteConnection = &mut establish_connection();
-    let reco: Oeuvre = oeuvres
-        .order(rating.desc())
-        .first(connection).map_err(|_| Status::InternalServerError)?;
+    let reco: Oeuvre = get_reco(connection, jwt.claims.user_id, medium.0).map_err(|_| Status::InternalServerError)?;
     Ok(serde_json::to_string(&reco).map_err(|_| Status::InternalServerError)?)
 }
 
 #[post("/rate", format = "application/json", data = "<rating>")]
 fn rate(jwt: JWT, rating: Json<RateRequest>) -> Result<String, Status> {
     let connection: &mut diesel::prelude::SqliteConnection = &mut establish_connection();
-    update_user_rating(connection, jwt.claims.user_id, rating.oeuvre_id, rating.rating)
-        .map_err(|_| Status::InternalServerError)?;
+    if let Some(old_rating) = update_user_rating(connection, jwt.claims.user_id, rating.oeuvre_id, rating.rating)
+        .map_err(|_| Status::InternalServerError)? 
+    {
+        on_rating_update(connection, jwt.claims.user_id, rating.oeuvre_id, old_rating, rating.rating)
+            .map_err(|_| Status::InternalServerError)?;
+    } else {
+        on_rating_add(connection, jwt.claims.user_id, rating.oeuvre_id, rating.rating)
+            .map_err(|_| Status::InternalServerError)?;
+    }
+    Ok(String::new())
+}
+
+#[post("/unrate", format = "application/json", data = "<oeuvre_id>")]
+fn unrate(jwt: JWT, oeuvre_id: Json<i32>) -> Result<String, Status> {
+    let connection: &mut diesel::prelude::SqliteConnection = &mut establish_connection();
+    if let Some(old_rating) = remove_user_rating(connection, jwt.claims.user_id, oeuvre_id.0).map_err(|_| Status::InternalServerError)? {
+        on_rating_remove(connection, jwt.claims.user_id, oeuvre_id.0, old_rating).map_err(|_| Status::InternalServerError)?;
+    } else {
+        warn!(target: "what-next", "User #{} attempted to remove rating for #{} which didn't exist", jwt.claims.user_id, oeuvre_id.0);
+    }
     Ok(String::new())
 }
 
 #[launch]
 fn rocket() -> _ {
-    rocket::build().mount("/", routes![sign_up, login, reco])
+    rocket::build().mount("/", routes![sign_up, login, reco, rate, unrate])
 }
