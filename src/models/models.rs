@@ -115,3 +115,11 @@ pub struct UserRating {
     pub oeuvre_id: i32,
     pub rating: i32,
 }
+
+#[derive(Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::users_similarity)]
+pub struct UserSimilarity {
+    pub user1_id: i32,
+    pub user2_id: i32,
+    pub score: i32
+}
