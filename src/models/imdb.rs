@@ -1,29 +1,23 @@
-use diesel::prelude::*;
-use super::{ImdbMap, NewImdbMap, NewOeuvre, Oeuvre};
+use rusqlite::params;
+use rusqlite::Result;
+use rusqlite::Connection;
+use crate::add_oeuvre;
+use crate::update_oeuvre;
+use super::NewOeuvre;
 
-pub fn get_imdb_oeuvre_id(conn: &mut SqliteConnection, imdb_id: &str) -> diesel::result::QueryResult<i32> {
-    use crate::schema::imdb_map;
-
-    let imdb_oeuvre: ImdbMap = imdb_map::table.filter(imdb_map::imdb_id.eq(imdb_id)).first(conn)?;
-    Ok(imdb_oeuvre.oeuvre_id)
+pub fn get_imdb_oeuvre_id(conn: &Connection, imdb_id: &str) -> Result<i32> {
+    conn.prepare_cached("SELECT oeuvre_id FROM imdb_map WHERE imdb_id = ?1")?
+        .query_row([imdb_id], |row| row.get::<usize, i32>(0))
 }
 
-pub fn add_imdb_oeuvre_no_check(conn: &mut SqliteConnection, new_oeuvre: NewOeuvre, imdb_id: &str) -> diesel::result::QueryResult<i32> {
-    use crate::schema::{imdb_map, oeuvres};
-
-    // NOTE: This doesn't check for duplicates, it should be used as a seeding method only !
-    let inserted_oeuvre: Oeuvre = diesel::insert_into(oeuvres::table)
-        .values(&new_oeuvre)
-        .returning(Oeuvre::as_returning())
-        .get_result(conn)?;
-
-    let imdb_map_entry = NewImdbMap {
-        oeuvre_id: inserted_oeuvre.id,
-        imdb_id
+pub fn add_imdb_oeuvre(conn: &Connection, new_oeuvre: NewOeuvre, imdb_id: &str) -> Result<i32> {
+    let oeuvre_id = if let Ok(oeuvre_id) = get_imdb_oeuvre_id(conn, imdb_id) {
+        update_oeuvre(conn, oeuvre_id, new_oeuvre)?;
+        oeuvre_id
+    } else {
+        let oeuvre_id = add_oeuvre(conn, new_oeuvre)?;
+        conn.execute("INSERT INTO imdb_map(oeuvre_id, imdb_id) VALUES(?1, ?2)", params![oeuvre_id, imdb_id])?;
+        oeuvre_id
     };
-    diesel::insert_into(imdb_map::table)
-        .values(&imdb_map_entry)
-        .execute(conn)?;
-
-    diesel::result::QueryResult::Ok(inserted_oeuvre.id)
+    Ok(oeuvre_id)
 }

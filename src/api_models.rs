@@ -1,5 +1,7 @@
 use rocket::serde::Deserialize;
 
+use crate::AppRating;
+
 #[derive(Deserialize)]
 pub struct CredentialRequest {
     pub username: String,
@@ -9,5 +11,5 @@ pub struct CredentialRequest {
 #[derive(Deserialize)]
 pub struct RateRequest {
     pub oeuvre_id: i32,
-    pub rating: i32,
+    pub rating: AppRating,
 }
