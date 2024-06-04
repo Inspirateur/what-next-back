@@ -1,6 +1,7 @@
 use serde::{Serialize, Deserialize};
+use strum_macros::EnumIter; // 0.17.1
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, EnumIter)]
 #[repr(i32)]
 pub enum Medium {
     // Note: don't reorder it, only append new variants at the end (it's serialized as an int)

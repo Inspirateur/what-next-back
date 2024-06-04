@@ -6,6 +6,8 @@ edition = "2021"
 
 [dependencies]
 anyhow = "*"
+strum = "*"
+strum_macros = "*"
 argon2 = { version = "*", features = ["std"] }
 chrono = "*"
 serde = { version = "*", features = ["derive"] }
@@ -14,4 +16,5 @@ csv = "*"
 dotenvy = "*"
 jsonwebtoken = "*"
 rusqlite = { version = "*", features = ["bundled"] }
+rocket_cors = "*"
 rocket = { version = "*", features = ["json"] }

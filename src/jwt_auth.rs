@@ -41,8 +41,6 @@ impl<'r> FromRequest<'r> for JWT {
 fn decode_jwt(token: String) -> Result<Claims, jsonwebtoken::errors::Error> {
     dotenv().ok();
 
-    println!("test");
-
     let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set.");
     let token = token.trim_start_matches("Bearer").trim();
 
