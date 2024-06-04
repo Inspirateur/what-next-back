@@ -63,14 +63,15 @@ mod tests {
     fn test_auth() {
         setup_db(DatabaseKind::TEST).unwrap();
         let conn = establish_connection(DatabaseKind::TEST).unwrap();
-        add_user(&conn, "test", "aBadPassword").unwrap();
+        let user_id = add_user(&conn, "test", "aBadPassword").unwrap();
         // duplicated username should fail with a constraint violation
         assert_constraint_violation(add_user(&conn, "test", "whatever"));
         // bad username/password combo should err with QueryReturnedNoRows
         assert_eq!(check_credential(&conn, "test", "theWrongPassword"), Err(rusqlite::Error::QueryReturnedNoRows));
         assert_eq!(check_credential(&conn, "wrong_username", "aBadPassword"), Err(rusqlite::Error::QueryReturnedNoRows));
         // correct username/password combo should succeed and return the user id
-        assert_eq!(check_credential(&conn, "test", "aBadPassword"), Ok(1));
+        assert_eq!(check_credential(&conn, "test", "aBadPassword"), Ok(user_id));
+        assert_eq!(change_password(&conn, "test", "aBadPassword", "whatever"), Ok(user_id));
     }
 
     #[test]
