@@ -179,8 +179,8 @@ pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Optio
         .map(|(oeuvre_id, score)| (oeuvre_id, (
             // Rating attributed by users weighted by similarity
             score
-            // Missing ratings (default to 0.5)
-            + (0.5*(1.-*oeuvres_coverage.get(&oeuvre_id).unwrap_or(&0.)))
+            // Missing ratings (default to 50)
+            + (50.*(1.-*oeuvres_coverage.get(&oeuvre_id).unwrap_or(&0.)))
             // Overall rating weighted by the phantom weight
             + *oeuvres_overall_rating.get(&oeuvre_id).unwrap_or(&50.)*phantom_weight
         ) as i32))
