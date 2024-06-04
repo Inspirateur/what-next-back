@@ -1818,7 +1818,6 @@ dependencies = [
  "csv",
  "dotenvy",
  "jsonwebtoken",
- "log",
  "rocket",
  "rusqlite",
  "serde",

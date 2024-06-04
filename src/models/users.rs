@@ -5,7 +5,7 @@ use argon2::{
     }, Argon2, PasswordHash, PasswordVerifier
 };
 use rusqlite::{params, Connection, OptionalExtension, Result};
-use crate::AppRating;
+use crate::{on_rating_add, on_rating_remove, on_rating_update, AppRating};
 
 /// Returns the newly created user id
 pub fn add_user(conn: &Connection, username: &str, pwd: &str) -> Result<i32> {
@@ -21,29 +21,28 @@ pub fn add_user(conn: &Connection, username: &str, pwd: &str) -> Result<i32> {
 }
 
 /// Returns the corresponding user id if successful
-pub fn check_credential(conn: &Connection, username: &str, pwd: &str) -> Result<Option<i32>> {
-    let (user_id, phc_str): (i32, String) = conn.prepare("SELECT (id, phc) FROM users WHERE username = ?1")?
+pub fn check_credential(conn: &Connection, username: &str, pwd: &str) -> Result<i32> {
+    let (user_id, phc_str) = conn.prepare_cached("SELECT id, phc FROM users WHERE username = ?1")?
         .query_row([username], |row| Ok((row.get::<usize, i32>(0)?, row.get::<usize, String>(1)?)))?;
     let phc = PasswordHash::new(&phc_str)
         .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
 
     if Argon2::default().verify_password(pwd.as_bytes(), &phc).is_ok() {
-        Ok(Some(user_id))
+        Ok(user_id)
     } else {
-        Ok(None)
+        Err(rusqlite::Error::QueryReturnedNoRows)
     }
 }
 
-/// Returns the corresponding user id if successful
-pub fn change_pwd(conn: &Connection, username: &str, old_pwd: &str, new_pwd: &str) -> Result<Option<i32>> {
-    let (user_id, phc_str): (i32, String) = conn.prepare("SELECT (id, phc) FROM users WHERE username = ?1")?
+pub fn change_password(conn: &Connection, username: &str, old_pwd: &str, new_pwd: &str) -> Result<i32> {
+    let (user_id, phc_str) = conn.prepare("SELECT id, phc FROM users WHERE username = ?1")?
         .query_row([username], |row| Ok((row.get::<usize, i32>(0)?, row.get::<usize, String>(1)?)))?;
 
     let old_phc = PasswordHash::new(&phc_str)
         .map_err(|e| rusqlite::Error::ToSqlConversionFailure(Box::new(e)))?;
 
     if Argon2::default().verify_password(old_pwd.as_bytes(), &old_phc).is_err() {
-        return Ok(None);
+        return Err(rusqlite::Error::QueryReturnedNoRows);
     };
 
     let salt = SaltString::generate(&mut OsRng);
@@ -53,29 +52,31 @@ pub fn change_pwd(conn: &Connection, username: &str, old_pwd: &str, new_pwd: &st
         .serialize();
     
     conn.execute("UPDATE users SET phc = ?1 WHERE id = ?2", params![user_id, new_phc.as_str()])?;
-    Ok(Some(user_id))
+    Ok(user_id)
 }
 
-/// Returns the previous rating if there was any
 pub fn update_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32, rating: AppRating) 
-    -> Result<Option<AppRating>> 
+    -> Result<()> 
 {
-    if let Ok(user_rating) = conn.prepare("SELECT rating FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2")?
+    if let Ok(old_rating) = conn.prepare("SELECT rating FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2")?
         .query_row([user_id, oeuvre_id], |row| row.get::<usize, i32>(0)) {
         conn.execute(
             "UPDATE user_ratings SET rating = ?1 WHERE user_id = ?2 AND oeuvre_id = ?3", 
             [rating.0, user_id, oeuvre_id])?;
-        Ok(Some(AppRating(user_rating)))
+        on_rating_update(conn, user_id, oeuvre_id, AppRating(old_rating), rating)
     } else {
         conn.execute(
             "INSERT INTO user_ratings(user_id, oeuvre_id, rating) VALUES(?1, ?2, ?3)", 
             [user_id, oeuvre_id, rating.0])?;
-        Ok(None)
+        on_rating_add(conn, user_id, oeuvre_id, rating)
     }
 }
 
-/// Returns the previous rating if there was any
-pub fn remove_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32) -> Result<Option<AppRating>> {
-    conn.prepare("DELETE FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2 RETURNING rating")?
-        .query_row([user_id, oeuvre_id], |row| row.get::<usize, i32>(0).map(|r| AppRating(r)).optional())
+pub fn remove_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32) -> Result<()> {
+    if let Some(old_rating) = conn.prepare("DELETE FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2 RETURNING rating")?
+        .query_row([user_id, oeuvre_id], |row| row.get::<usize, i32>(0).map(|r| AppRating(r)).optional())? {
+        on_rating_remove(conn, user_id, oeuvre_id, old_rating)
+    } else {
+        Ok(())
+    }
 }

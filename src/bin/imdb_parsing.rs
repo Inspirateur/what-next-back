@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use what_next_back::{add_imdb_oeuvre, add_tag, establish_connection, get_imdb_oeuvre_id, models::{Medium, NewOeuvre}, update_rating, RatingOn100};
+use what_next_back::{add_imdb_oeuvre, add_tag, establish_connection, get_imdb_oeuvre_id, models::{Medium, NewOeuvre}, update_rating, DatabaseKind, RatingOn100};
 
 fn main() {
     seed_imdb_oeuvres();
@@ -15,7 +15,7 @@ fn seed_imdb_oeuvres() {
     };
 
     println!("Reading IMDb oeuvres");
-    let mut conn = establish_connection().unwrap();
+    let mut conn = establish_connection(DatabaseKind::PROD).unwrap();
     let tx = conn.transaction().unwrap();
     let mut i: u32 = 0;
     let mut skipped = 0;
@@ -78,7 +78,7 @@ fn seed_imdb_crews() {
     };
 
     println!("Reading IMDb crews");
-    let mut conn = establish_connection().unwrap();
+    let mut conn = establish_connection(DatabaseKind::PROD).unwrap();
     let tx = conn.transaction().unwrap();
     let mut i: u32 = 0;
     let mut skipped = 0;
@@ -151,7 +151,7 @@ fn seed_imdb_ratings() {
     };
 
     println!("Reading IMDb ratings");
-    let mut conn = establish_connection().unwrap();
+    let mut conn = establish_connection(DatabaseKind::PROD).unwrap();
     let tx = conn.transaction().unwrap();
     let mut i: u32 = 0;
     let mut skipped = 0;

@@ -52,9 +52,9 @@ impl AppRating {
     }
 
     pub fn to_rating_on_100(rating: f32) -> f32 {
-        rating * 2. + 25.
+        (rating + 2.) * 25.
     }
 }
 
-#[derive(Serialize)]
+#[derive(Debug, PartialEq, Eq, Serialize)]
 pub struct RatingOn100(pub i32);
