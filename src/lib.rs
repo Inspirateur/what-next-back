@@ -83,13 +83,13 @@ mod tests {
         let outception = add_oeuvre(&conn, NewOeuvre { 
             medium: Medium::Movie, title: "Outception", rating: RatingOn100(81), 
             synopsis: "", picture: "" }).unwrap();
-        let crap_movie = add_oeuvre(&conn, NewOeuvre { 
+        let _crap_movie = add_oeuvre(&conn, NewOeuvre { 
             medium: Medium::Movie, title: "Crap Movie", rating: RatingOn100(20), 
             synopsis: "", picture: "" }).unwrap();
         let barry_motter = add_oeuvre(&conn, NewOeuvre { 
             medium: Medium::Book, title: "Barry Motter", rating: RatingOn100(85), 
             synopsis: "", picture: "" }).unwrap();
-        let game_of_chairs = add_oeuvre(&conn, NewOeuvre { 
+        let _game_of_chairs = add_oeuvre(&conn, NewOeuvre { 
             medium: Medium::Book, title: "Game of Chairs", rating: RatingOn100(78), 
             synopsis: "", picture: "" }).unwrap();
         let main_user = add_user(&conn, "main_user", "doesn'tMatter").unwrap();
