@@ -26,7 +26,8 @@ pub struct Oeuvre {
     pub title: String,
     pub rating: RatingOn100,
     pub synopsis: String,
-    pub picture: String
+    pub picture: String,
+    pub tags: Vec<String>
 }
 
 pub struct NewOeuvre<'a> {

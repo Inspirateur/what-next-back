@@ -21,17 +21,19 @@ pub fn update_oeuvre(conn: &Connection, oeuvre_id: i32, new_oeuvre: NewOeuvre) -
 }
 
 pub fn get_oeuvre(conn: &Connection, oeuvre_id: i32) -> Result<Oeuvre> {
-    conn.prepare("SELECT medium, title, rating, synopsis, picture FROM oeuvres WHERE id = ?1")?
+    let tags = conn.prepare_cached("SELECT tags.label FROM tags INNER JOIN oeuvre_tags ON oeuvre_tags.oeuvre_id = ?1")?
+        .query_map([oeuvre_id], |row| row.get::<usize, String>(0))?.collect::<Result<Vec<_>>>()?;
+    conn.prepare_cached("SELECT medium, title, rating, synopsis, picture FROM oeuvres WHERE id = ?1")?
         .query_row([oeuvre_id], |row| Ok(Oeuvre {
             id: oeuvre_id,
             medium: Medium::from(row.get::<usize, i32>(0)?),
             title: row.get::<usize, String>(1)?,
             rating: RatingOn100(row.get::<usize, i32>(2)?),
             synopsis: row.get::<usize, String>(3)?,
-            picture: row.get::<usize, String>(4)?
+            picture: row.get::<usize, String>(4)?,
+            tags
         }))
 }
-
 
 pub fn insert_or_replace_tag(conn: &Connection, tag_label: String) -> Result<i32> {
     conn.prepare_cached("INSERT INTO tags(label) VALUES(?1) ON CONFLICT(label) DO NOTHING RETURNING id")?
