@@ -5,7 +5,7 @@ use argon2::{
     }, Argon2, PasswordHash, PasswordVerifier
 };
 use rusqlite::{params, Connection, OptionalExtension, Result};
-use crate::{on_rating_add, on_rating_remove, on_rating_update, AppRating};
+use crate::{on_rating_add, on_rating_remove, on_rating_update, AppRating, Medium, Oeuvre, RatingOn100};
 
 /// Returns the newly created user id
 pub fn add_user(conn: &Connection, username: &str, pwd: &str) -> Result<i32> {
@@ -58,7 +58,7 @@ pub fn change_password(conn: &Connection, username: &str, old_pwd: &str, new_pwd
 pub fn update_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32, rating: AppRating) 
     -> Result<()> 
 {
-    if let Ok(old_rating) = conn.prepare("SELECT rating FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2")?
+    if let Ok(old_rating) = conn.prepare_cached("SELECT rating FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2")?
         .query_row([user_id, oeuvre_id], |row| row.get::<usize, i32>(0)) {
         conn.execute(
             "UPDATE user_ratings SET rating = ?1 WHERE user_id = ?2 AND oeuvre_id = ?3", 
@@ -73,10 +73,26 @@ pub fn update_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32, ratin
 }
 
 pub fn remove_user_rating(conn: &Connection, user_id: i32, oeuvre_id: i32) -> Result<()> {
-    if let Some(old_rating) = conn.prepare("DELETE FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2 RETURNING rating")?
+    if let Some(old_rating) = conn.prepare_cached("DELETE FROM user_ratings WHERE user_id = ?1 AND oeuvre_id = ?2 RETURNING rating")?
         .query_row([user_id, oeuvre_id], |row| row.get::<usize, i32>(0).map(|r| AppRating(r)).optional())? {
         on_rating_remove(conn, user_id, oeuvre_id, old_rating)
     } else {
         Ok(())
     }
+}
+
+pub fn get_rated_oeuvres(conn: &Connection, user_id: i32) -> Result<Vec<Oeuvre>> {
+    conn.prepare_cached(
+        "SELECT oeuvres.id, oeuvres.medium, oeuvres.title, oeuvres.picture, user_ratings.rating 
+        FROM user_ratings INNER JOIN oeuvres ON user_ratings.user_id = ?1 AND oeuvres.id = user_ratings.oeuvre_id")?
+        .query_map([user_id], |row| Ok(Oeuvre {
+            id: row.get::<usize, i32>(0)?,
+            medium: Medium::from(row.get::<usize, i32>(1)?),
+            title: row.get::<usize, String>(2)?,
+            picture: row.get::<usize, String>(3)?,
+            rating: RatingOn100(0),
+            synopsis: String::new(),
+            tags: Vec::new(),
+            user_rating: Some(AppRating(row.get::<usize, i32>(4)?))
+        }))?.collect::<Result<Vec<_>>>()
 }

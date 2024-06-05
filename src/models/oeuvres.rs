@@ -31,7 +31,8 @@ pub fn get_oeuvre(conn: &Connection, oeuvre_id: i32) -> Result<Oeuvre> {
             rating: RatingOn100(row.get::<usize, i32>(2)?),
             synopsis: row.get::<usize, String>(3)?,
             picture: row.get::<usize, String>(4)?,
-            tags
+            tags,
+            user_rating: None,
         }))
 }
 

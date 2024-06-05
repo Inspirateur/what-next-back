@@ -27,7 +27,8 @@ pub struct Oeuvre {
     pub rating: RatingOn100,
     pub synopsis: String,
     pub picture: String,
-    pub tags: Vec<String>
+    pub tags: Vec<String>,
+    pub user_rating: Option<AppRating>
 }
 
 pub struct NewOeuvre<'a> {

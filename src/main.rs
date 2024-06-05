@@ -90,7 +90,9 @@ fn unrate(jwt: JWT, oeuvre_id: Json<i32>) -> Result<(), Status> {
 #[get("/rated")]
 fn rated(jwt: JWT) -> Result<String, Status> {
     // TODO: return all the oeuvre the user has rated, so they can see and possibily edit the ratings
-    todo!()
+    let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
+    let oeuvres = get_rated_oeuvres(&conn, jwt.claims.user_id).map_err(|_| Status::InternalServerError)?;
+    serde_json::to_string(&oeuvres).map_err(|_| Status::InternalServerError)
 }
 
 #[get("/search/<medium>/<query>")]
@@ -114,7 +116,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     }.to_cors()?;
 
     let _ = rocket::build()
-        .mount("/", routes![sign_up, login, change_pwd, reco, rate, rate_reco, unrate, media])
+        .mount("/", routes![sign_up, login, change_pwd, reco, rate, rate_reco, unrate, media, rated])
         .attach(cors)
         .launch()
         .await?;
