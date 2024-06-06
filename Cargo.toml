@@ -16,5 +16,4 @@ csv = "*"
 dotenvy = "*"
 jsonwebtoken = "*"
 rusqlite = { version = "*", features = ["bundled"] }
-rocket_cors = "*"
 rocket = { version = "*", features = ["json"] }
