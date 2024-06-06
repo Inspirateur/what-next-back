@@ -56,3 +56,8 @@ pub fn add_picture(conn: &Connection, oeuvre_id: i32, picture: &str) -> Result<(
     conn.execute("UPDATE oeuvres SET picture = ?1 WHERE id = ?2", params![picture, oeuvre_id])?;
     Ok(())
 }
+
+pub fn add_synopsis(conn: &Connection, oeuvre_id: i32, synopsis: &str) -> Result<()> {
+    conn.execute("UPDATE oeuvres SET synopsis = ?1 WHERE id = ?2", params![synopsis, oeuvre_id])?;
+    Ok(())
+}

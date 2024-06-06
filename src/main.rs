@@ -67,7 +67,7 @@ async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
     }
     let mut oeuvre: Oeuvre = get_oeuvre(&conn, reco.oeuvre_id).map_err(|_| Status::InternalServerError)?;
     if oeuvre.picture.len() == 0 && matches!(medium, Medium::Movie | Medium::Series | Medium::AnimationMovie) {
-        // get imdb picture if possible
+        // get imdb picture and synopsis if possible 
         // TODO: turn this into a chain of .map when async closure are stabilized
         if let Ok(imdb_id) = get_imdb_id(&conn, reco.oeuvre_id) {
             if let Ok(res) = reqwest::get(format!(
@@ -80,6 +80,12 @@ async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
                             if let Some(pic_url) = pic_url_opt.as_str() {
                                 oeuvre.picture = pic_url.to_string();
                                 let _ = add_picture(&conn, reco.oeuvre_id, pic_url);
+                            }
+                        }
+                        if let Some(plot_opt) = map.get("Plot") {
+                            if let Some(plot) = plot_opt.as_str() {
+                                oeuvre.synopsis = plot.to_string();
+                                let _ = add_synopsis(&conn, reco.oeuvre_id, plot);
                             }
                         }
                     }
