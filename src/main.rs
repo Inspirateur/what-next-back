@@ -1,8 +1,8 @@
 mod cors;
-use std::error::Error;
+use std::{env, error::Error};
 use cors::CORS;
 use rocket::{get, http::Status, options, post, routes, serde::json::Json};
-use rusqlite::Connection;
+use serde_json::Map;
 use strum::IntoEnumIterator;
 use api_models::*;
 use jwt_auth::*;
@@ -57,7 +57,8 @@ fn media() -> Result<String, Status> {
     serde_json::to_string(&Medium::iter().collect::<Vec<_>>()).map_err(|_| Status::InternalServerError)
 }
 
-fn reco_worker(conn: &Connection, user_id: i32, medium: Medium) -> Result<String, Status> {
+async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
+    let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
     let Some(reco) = get_reco(&conn, user_id, medium).map_err(|_| Status::InternalServerError)? else {
         return Err(Status::NotFound);
     };
@@ -65,6 +66,27 @@ fn reco_worker(conn: &Connection, user_id: i32, medium: Medium) -> Result<String
         return Err(Status::NotFound);
     }
     let mut oeuvre: Oeuvre = get_oeuvre(&conn, reco.oeuvre_id).map_err(|_| Status::InternalServerError)?;
+    if oeuvre.picture.len() == 0 && matches!(medium, Medium::Movie | Medium::Series | Medium::AnimationMovie) {
+        // get imdb picture if possible
+        // TODO: turn this into a chain of .map when async closure are stabilized
+        if let Ok(imdb_id) = get_imdb_id(&conn, reco.oeuvre_id) {
+            if let Ok(res) = reqwest::get(format!(
+                "https://www.omdbapi.com/?i={}&apikey={}", imdb_id, 
+                env::var("OMDB_KEY").expect("OMDB_KEY must be set"))
+            ).await {
+                if let Ok(body) = res.text().await {
+                    if let Ok(map) = serde_json::from_str::<Map<String, serde_json::Value>>(&body) {
+                        if let Some(pic_url_opt) = map.get("Poster") {
+                            if let Some(pic_url) = pic_url_opt.as_str() {
+                                oeuvre.picture = pic_url.to_string();
+                                let _ = add_picture(&conn, reco.oeuvre_id, pic_url);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     oeuvre.rating = reco.score;
     Ok(serde_json::to_string(&oeuvre).map_err(|_| Status::InternalServerError)?)
 }
@@ -74,21 +96,20 @@ fn reco_worker(conn: &Connection, user_id: i32, medium: Medium) -> Result<String
 fn _reco() {}
 
 #[post("/reco", format = "application/json", data = "<medium>")]
-fn reco(jwt: JWT, medium: Json<Medium>) -> Result<String, Status> {
-    let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
-    reco_worker(&conn, jwt.claims.user_id, medium.0)
+async fn reco(jwt: JWT, medium: Json<Medium>) -> Result<String, Status> {
+    reco_worker(jwt.claims.user_id, medium.0).await
 }
 
 #[options("/rate_reco")]
 fn _rate_reco() {}
 
 #[post("/rate_reco", format = "application/json", data = "<req>")]
-fn rate_reco(jwt: JWT, req: Json<RateRequest>) -> Result<String, Status> {
-    let conn = &establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
-    update_user_rating(&conn, jwt.claims.user_id, req.oeuvre_id, req.rating)
-        .map_err(|_| Status::InternalServerError)?;
-    let medium = get_oeuvre(conn, req.oeuvre_id).map_err(|_| Status::InternalServerError)?.medium;
-    reco_worker(&conn, jwt.claims.user_id, medium)
+async fn rate_reco(jwt: JWT, req: Json<RateRecoRequest>) -> Result<String, Status> {
+    update_user_rating(
+        &establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?, 
+        jwt.claims.user_id, req.oeuvre_id, req.rating
+    ).map_err(|_| Status::InternalServerError)?;
+    reco_worker(jwt.claims.user_id, req.medium).await
 }
 
 #[options("/rate")]

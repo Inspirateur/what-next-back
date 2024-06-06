@@ -5,6 +5,11 @@ use crate::add_oeuvre;
 use crate::update_oeuvre;
 use super::NewOeuvre;
 
+pub fn get_imdb_id(conn: &Connection, oeuvre_id: i32) -> Result<String> {
+    conn.prepare_cached("SELECT imdb_id FROM imdb_map WHERE oeuvre_id = ?1")?
+        .query_row([oeuvre_id], |row| row.get::<usize, String>(0))
+}
+
 pub fn get_imdb_oeuvre_id(conn: &Connection, imdb_id: &str) -> Result<i32> {
     conn.prepare_cached("SELECT oeuvre_id FROM imdb_map WHERE imdb_id = ?1")?
         .query_row([imdb_id], |row| row.get::<usize, i32>(0))

@@ -51,3 +51,8 @@ pub fn update_rating(conn: &Connection, oeuvre_id: i32, rating: RatingOn100) -> 
     conn.execute("UPDATE oeuvres SET rating = ?1 WHERE id = ?2", [rating.0, oeuvre_id])?;
     Ok(())
 }
+
+pub fn add_picture(conn: &Connection, oeuvre_id: i32, picture: &str) -> Result<()> {
+    conn.execute("UPDATE oeuvres SET picture = ?1 WHERE id = ?2", params![picture, oeuvre_id])?;
+    Ok(())
+}

@@ -17,3 +17,4 @@ dotenvy = "*"
 jsonwebtoken = "*"
 rusqlite = { version = "*", features = ["bundled"] }
 rocket = { version = "*", features = ["json"] }
+reqwest = "*"
