@@ -29,10 +29,10 @@ impl<'r> FromRequest<'r> for JWT {
         }
 
         match req.headers().get_one("authorization") {
-            None => Outcome::Error((Status::BadRequest, jsonwebtoken::errors::ErrorKind::InvalidToken.into())),
+            None => Outcome::Error((Status::Unauthorized, jsonwebtoken::errors::ErrorKind::InvalidToken.into())),
             Some(key) => match is_valid(key) {
                 Ok(claims) => Outcome::Success(JWT {claims}),
-                Err(err) => Outcome::Error((Status::BadRequest, err)),
+                Err(err) => Outcome::Error((Status::Unauthorized, err)),
             },
         }
     }
