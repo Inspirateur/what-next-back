@@ -1,6 +1,7 @@
 use rocket::serde::Deserialize;
+use serde::Serialize;
 
-use crate::{AppRating, Medium};
+use crate::{AppRating, Medium, Oeuvre, RatingOn100};
 
 #[derive(Deserialize)]
 pub struct CredentialRequest {
@@ -26,4 +27,16 @@ pub struct RateRecoRequest {
     pub oeuvre_id: i32,
     pub rating: AppRating,
     pub medium: Medium
+}
+
+#[derive(Serialize)]
+pub struct ProfileResponse {
+    pub oeuvres: Vec<Oeuvre>,
+    pub similarity: RatingOn100,
+}
+
+#[derive(Serialize)]
+pub struct InfoResponse {
+    pub media: Vec<Medium>,
+    pub usename: String
 }

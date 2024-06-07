@@ -96,3 +96,8 @@ pub fn get_rated_oeuvres(conn: &Connection, user_id: i32) -> Result<Vec<Oeuvre>>
             user_rating: Some(AppRating(row.get::<usize, i32>(4)?))
         }))?.collect::<Result<Vec<_>>>()
 }
+
+pub fn get_user_id(conn: &Connection, username: &str) -> Result<i32> {
+    conn.prepare_cached("SELECT id FROM users WHERE username = ?1")?
+        .query_row([username], |row| row.get::<usize, i32>(0))
+}

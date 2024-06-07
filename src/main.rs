@@ -140,14 +140,28 @@ fn unrate(jwt: JWT, oeuvre_id: Json<i32>) -> Result<(), Status> {
     Ok(())
 }
 
-#[options("/rated")]
+#[options("/rated/<_>")]
+fn _rated_auth() {}
+
+#[get("/rated/<username>")]
+fn rated_auth(jwt: JWT, username: &str) -> Result<String, Status> {
+    let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
+    let user_id = get_user_id(&conn, &username).map_err(|_| Status::InternalServerError)?;
+    let oeuvres = get_rated_oeuvres(&conn, user_id).map_err(|_| Status::InternalServerError)?;
+    let similarity = get_similarity(&conn, jwt.claims.user_id, user_id).map_err(|_| Status::InternalServerError)?;
+    serde_json::to_string(&ProfileResponse {
+        oeuvres, similarity: similarity
+    }).map_err(|_| Status::InternalServerError)
+}
+
+#[options("/rated_anon/<_>")]
 fn _rated() {}
 
-#[get("/rated")]
-fn rated(jwt: JWT) -> Result<String, Status> {
-    // TODO: return all the oeuvre the user has rated, so they can see and possibily edit the ratings
+#[get("/rated_anon/<username>")]
+fn rated(username: &str) -> Result<String, Status> {
     let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
-    let oeuvres = get_rated_oeuvres(&conn, jwt.claims.user_id).map_err(|_| Status::InternalServerError)?;
+    let user_id = get_user_id(&conn, &username).map_err(|_| Status::InternalServerError)?;
+    let oeuvres = get_rated_oeuvres(&conn, user_id).map_err(|_| Status::InternalServerError)?;
     serde_json::to_string(&oeuvres).map_err(|_| Status::InternalServerError)
 }
 
@@ -166,8 +180,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _ = rocket::build()
         .attach(CORS)
         .mount("/", routes![
-            sign_up, login, change_pwd, reco, rate, rate_reco, unrate, media, rated,
-            _sign_up, _login, _change_pwd, _reco, _rate, _rate_reco, _unrate, _media, _rated,
+            sign_up, login, change_pwd, reco, rate, rate_reco, unrate, media, rated, rated_auth,
+            _sign_up, _login, _change_pwd, _reco, _rate, _rate_reco, _unrate, _media, _rated, _rated_auth,
         ])
         .launch()
         .await?;

@@ -11,6 +11,20 @@ fn order_user_id(user1_id: i32, user2_id: i32) -> (i32, i32) {
     }
 }
 
+
+pub fn get_similarity(conn: &Connection, user1_id: i32, user2_id: i32) -> Result<RatingOn100> {
+    let (user1_id, user2_id) = order_user_id(user1_id, user2_id);
+
+    let res = conn.prepare_cached("SELECT score FROM users_similarity WHERE user1_id = ?1 AND user2_id = ?2")?
+        .query_row([user1_id, user2_id], |row| row.get::<usize, i32>(0));
+
+    match res {
+        Ok(score) => Ok(RatingOn100((100./(1. + (-score as f32/2.).exp())) as i32)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(RatingOn100(0)),
+        Err(err) => Err(err)
+    }
+}
+
 fn update_similarity(conn: &Connection, user1_id: i32, user2_id: i32, delta: i32) -> Result<()> {
     let (user1_id, user2_id) = order_user_id(user1_id, user2_id);
 
