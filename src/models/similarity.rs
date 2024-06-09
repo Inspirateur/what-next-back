@@ -11,7 +11,6 @@ fn order_user_id(user1_id: i32, user2_id: i32) -> (i32, i32) {
     }
 }
 
-
 pub fn get_similarity(conn: &Connection, user1_id: i32, user2_id: i32) -> Result<RatingOn100> {
     let (user1_id, user2_id) = order_user_id(user1_id, user2_id);
 

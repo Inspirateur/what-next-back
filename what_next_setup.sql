@@ -50,3 +50,10 @@ CREATE TABLE users_similarity (
   FOREIGN KEY(user2_id) REFERENCES users(id),
   PRIMARY KEY(user1_id, user2_id)
 );
+
+CREATE TABLE search_tokens (
+  oeuvre_id INTEGER NOT NULL,
+  token TEXT NOT NULL,
+  FOREIGN KEY(oeuvre_id) REFERENCES oeuvres(id),
+  PRIMARY KEY(oeuvre_id, token)
+);

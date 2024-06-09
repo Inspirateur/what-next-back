@@ -1,6 +1,7 @@
 mod cors;
-use std::{env, error::Error};
+use std::{env, error::Error, str::FromStr};
 use cors::CORS;
+use regex::Regex;
 use rocket::{get, http::Status, options, post, routes, serde::json::Json};
 use serde_json::Map;
 use strum::IntoEnumIterator;
@@ -98,12 +99,12 @@ async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
 }
 
 
-#[options("/reco")]
+#[options("/reco/<_>")]
 fn _reco() {}
 
-#[post("/reco", format = "application/json", data = "<medium>")]
-async fn reco(jwt: JWT, medium: Json<Medium>) -> Result<String, Status> {
-    reco_worker(jwt.claims.user_id, medium.0).await
+#[get("/reco/<medium>")]
+async fn reco(jwt: JWT, medium: Medium) -> Result<String, Status> {
+    reco_worker(jwt.claims.user_id, medium).await
 }
 
 #[options("/rate_reco")]
@@ -169,10 +170,17 @@ fn rated(username: &str) -> Result<String, Status> {
 fn _search() {}
 
 #[get("/search/<medium>/<query>")]
-fn search(jwt: JWT, medium: &str, query: &str) -> Result<String, Status> {
-    // TODO: return oeuvres from the medium that match the query, also provide rating info if the user has rated it 
-    let medium: Medium = serde_json::from_str(medium).map_err(|_| Status::BadRequest)?;
-    todo!()
+fn search(jwt: JWT, medium: Medium, query: &str) -> Result<String, Status> {
+    let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
+    let oeuvres = search_oeuvres(
+        &conn, medium, 
+        Regex::new(r"\w+").unwrap()
+            .find_iter(&query.to_lowercase())
+            .map(|token| token.as_str().trim_end_matches("s"))
+            .filter(|token| token.len() > 0)
+            .collect()
+    ).map_err(|_| Status::InternalServerError)?;
+    serde_json::to_string(&oeuvres).map_err(|_| Status::InternalServerError)
 }
 
 #[rocket::main]
@@ -180,8 +188,17 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let _ = rocket::build()
         .attach(CORS)
         .mount("/", routes![
-            sign_up, login, change_pwd, reco, rate, rate_reco, unrate, media, rated, rated_auth,
-            _sign_up, _login, _change_pwd, _reco, _rate, _rate_reco, _unrate, _media, _rated, _rated_auth,
+            sign_up, _sign_up,
+            login, _login, 
+            change_pwd, _change_pwd, 
+            reco, _reco, 
+            rate, _rate, 
+            rate_reco, _rate_reco, 
+            unrate, _unrate, 
+            media, _media, 
+            rated, _rated, 
+            rated_auth, _rated_auth, 
+            search, _search,
         ])
         .launch()
         .await?;

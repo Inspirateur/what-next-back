@@ -1,7 +1,10 @@
-use serde::{Serialize, Deserialize};
-use strum_macros::EnumIter; // 0.17.1
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, EnumIter)]
+use rocket::request::FromParam;
+use serde::{Serialize, Deserialize};
+use strum_macros::{EnumIter, EnumString}; // 0.17.1
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString)]
 #[repr(i32)]
 pub enum Medium {
     // Note: don't reorder it, only append new variants at the end (it's serialized as an int)
@@ -11,6 +14,14 @@ pub enum Medium {
     Anime,
     Book,
     VideoGame
+}
+
+impl<'a> FromParam<'a> for Medium {
+    type Error = <Self as ::core::str::FromStr>::Err;
+
+    fn from_param(param: &'a str) -> Result<Self, Self::Error> {
+        Medium::from_str(param)
+    }
 }
 
 impl From<i32> for Medium {

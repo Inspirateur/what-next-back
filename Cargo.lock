@@ -2307,6 +2307,7 @@ dependencies = [
  "csv",
  "dotenvy",
  "jsonwebtoken",
+ "regex",
  "reqwest",
  "rocket",
  "rusqlite",
