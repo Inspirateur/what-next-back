@@ -1,13 +1,15 @@
 use rusqlite::{params, Connection, Result};
-use crate::{Medium, NewOeuvre, Oeuvre, RatingOn100};
+use crate::{index_oeuvre, Medium, NewOeuvre, Oeuvre, RatingOn100};
 
 /// Returns oeuvre id if succesfull
 pub fn add_oeuvre(conn: &Connection, new_oeuvre: NewOeuvre) -> Result<i32> {
-    conn.prepare_cached("INSERT INTO oeuvres(medium, title, rating, synopsis, picture) VALUES(?1, ?2, ?3, ?4, ?5) RETURNING id")?
+    let oeuvre_id = conn.prepare_cached("INSERT INTO oeuvres(medium, title, rating, synopsis, picture) VALUES(?1, ?2, ?3, ?4, ?5) RETURNING id")?
         .query_row(params![
             new_oeuvre.medium as i32, new_oeuvre.title, new_oeuvre.rating.0, 
             new_oeuvre.synopsis, new_oeuvre.picture
-        ], |row| row.get::<usize, i32>(0))
+        ], |row| row.get::<usize, i32>(0))?;
+    index_oeuvre(conn, oeuvre_id, new_oeuvre.title)?;
+    Ok(oeuvre_id)
 }
 
 pub fn update_oeuvre(conn: &Connection, oeuvre_id: i32, new_oeuvre: NewOeuvre) -> Result<()> {

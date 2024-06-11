@@ -1,8 +1,20 @@
 use std::collections::HashMap;
+use regex::Regex;
 use rusqlite::{Connection, Result, params};
 use crate::{Medium, Oeuvre, RatingOn100};
 
-pub fn add_token(conn: &Connection, oeuvre_id: i32, token: &str) -> Result<()> {
+pub fn index_oeuvre(conn: &Connection, oeuvre_id: i32, title: &str) -> Result<()> {
+    for token in Regex::new(r"\w+").unwrap()
+        .find_iter(&title.to_lowercase())
+        .map(|token| token.as_str().trim_end_matches("s"))
+        .filter(|token| token.len() > 0) 
+    {
+        add_token(&conn, oeuvre_id, token).unwrap();
+    }
+    Ok(())
+}
+
+fn add_token(conn: &Connection, oeuvre_id: i32, token: &str) -> Result<()> {
     conn.execute("INSERT OR IGNORE INTO search_tokens(oeuvre_id, token) VALUES (?1, ?2)", params![oeuvre_id, token])?;
     Ok(())
 }
