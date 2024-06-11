@@ -8,9 +8,26 @@ CREATE TABLE oeuvres (
 );
 
 CREATE TABLE imdb_map (
-  oeuvre_id INTEGER NOT NULL UNIQUE,
+  oeuvre_id INTEGER PRIMARY KEY NOT NULL,
   imdb_id TEXT NOT NULL UNIQUE,
-  PRIMARY KEY (oeuvre_id, imdb_id),
+  FOREIGN KEY (oeuvre_id) REFERENCES oeuvres(id)
+);
+
+CREATE TABLE mal_map (
+  oeuvre_id INTEGER PRIMARY KEY NOT NULL,
+  mal_id INTEGER NOT NULL UNIQUE,
+  FOREIGN KEY (oeuvre_id) REFERENCES oeuvres(id)
+);
+
+CREATE TABLE isbn_map (
+  oeuvre_id INTEGER PRIMARY KEY NOT NULL,
+  isbn10 TEXT NOT NULL UNIQUE,
+  FOREIGN KEY (oeuvre_id) REFERENCES oeuvres(id)
+);
+
+CREATE TABLE steam_map (
+  oeuvre_id INTEGER PRIMARY KEY NOT NULL,
+  steam_id INTEGER NOT NULL UNIQUE,
   FOREIGN KEY (oeuvre_id) REFERENCES oeuvres(id)
 );
 

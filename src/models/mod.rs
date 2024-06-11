@@ -1,6 +1,9 @@
 pub mod models;
 pub mod oeuvres;
 pub mod imdb;
+pub mod mal;
+pub mod isbn;
+pub mod steam;
 pub mod users;
 pub mod similarity;
 pub mod search;

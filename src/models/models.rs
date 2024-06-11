@@ -1,10 +1,9 @@
 use std::str::FromStr;
-
 use rocket::request::FromParam;
 use serde::{Serialize, Deserialize};
-use strum_macros::{EnumIter, EnumString}; // 0.17.1
+use strum_macros::EnumString;
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, EnumIter, EnumString)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, EnumString)]
 #[repr(i32)]
 pub enum Medium {
     // Note: don't reorder it, only append new variants at the end (it's serialized as an int)

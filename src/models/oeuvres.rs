@@ -37,13 +37,19 @@ pub fn get_oeuvre(conn: &Connection, oeuvre_id: i32) -> Result<Oeuvre> {
 }
 
 pub fn insert_or_replace_tag(conn: &Connection, tag_label: String) -> Result<i32> {
-    conn.prepare_cached("INSERT INTO tags(label) VALUES(?1) ON CONFLICT(label) DO NOTHING RETURNING id")?
-        .query_row([tag_label], |row| row.get::<usize, i32>(0))
+    if let Ok(tag_id) = conn.prepare_cached("SELECT id FROM tags WHERE label = ?1")?
+        .query_row([&tag_label], |row| row.get::<usize, i32>(0)) 
+    {
+        Ok(tag_id)
+    } else {
+        conn.prepare_cached("INSERT INTO tags(label) VALUES(?1) RETURNING id")?
+            .query_row([&tag_label], |row| row.get::<usize, i32>(0))
+    }
 }
 
 pub fn add_tag(conn: &Connection, oeuvre_id: i32, tag_label: String) -> Result<()> {
     let tag_id = insert_or_replace_tag(conn, tag_label)?;
-    conn.execute("INSERT INTO oeuvre_tags(oeuvre_id, tag_id) VALUES(?1, ?2)", [oeuvre_id, tag_id])?;
+    conn.execute("INSERT INTO oeuvre_tags(oeuvre_id, tag_id) VALUES(?1, ?2) ON CONFLICT DO NOTHING", [oeuvre_id, tag_id])?;
     Ok(())
 }
 

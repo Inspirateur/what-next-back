@@ -1,10 +1,9 @@
 mod cors;
-use std::{env, error::Error, str::FromStr};
+use std::{env, error::Error};
 use cors::CORS;
 use regex::Regex;
 use rocket::{get, http::Status, options, post, routes, serde::json::Json};
 use serde_json::Map;
-use strum::IntoEnumIterator;
 use api_models::*;
 use jwt_auth::*;
 use what_next_back::*;
@@ -49,13 +48,6 @@ fn change_pwd(req: Json<ChangePasswordRequest>) -> Result<String, Status> {
             _ => Status::InternalServerError
         })?;
     Ok(create_jwt(user_id).map_err(|_| Status::InternalServerError)?)
-}
-#[options("/media")]
-fn _media() {}
-
-#[get("/media")]
-fn media() -> Result<String, Status> {
-    serde_json::to_string(&Medium::iter().collect::<Vec<_>>()).map_err(|_| Status::InternalServerError)
 }
 
 async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
@@ -170,7 +162,7 @@ fn rated(username: &str) -> Result<String, Status> {
 fn _search() {}
 
 #[get("/search/<medium>/<query>")]
-fn search(jwt: JWT, medium: Medium, query: &str) -> Result<String, Status> {
+fn search(_jwt: JWT, medium: Medium, query: &str) -> Result<String, Status> {
     let conn = establish_connection(DatabaseKind::PROD).map_err(|_| Status::InternalServerError)?;
     let oeuvres = search_oeuvres(
         &conn, medium, 
@@ -195,7 +187,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             rate, _rate, 
             rate_reco, _rate_reco, 
             unrate, _unrate, 
-            media, _media, 
             rated, _rated, 
             rated_auth, _rated_auth, 
             search, _search,

@@ -23,8 +23,8 @@ fn seed_imdb_oeuvres() {
         i += 1;
         if i.trailing_zeros() == 18 {
             println!("{i} - (skipped {skipped})");
-            skipped = 0;
         }
+        // TODO: find out if there's a setting that can correctly parse everything
         let Ok(record) = record_res else {
             skipped += 1;
             continue;
@@ -53,24 +53,19 @@ fn seed_imdb_oeuvres() {
             synopsis: "",
             picture: ""
         };
-        if let Ok(oeuvre_id) = add_imdb_oeuvre(&tx, new_oeuvre, imdb_id) {
-            for genre in genres.into_iter().filter(|g| *g != "Animation") {
-                if genre == "\\N" { continue; }
-                let _ = add_tag(&tx, oeuvre_id, format!("genre:{genre}"));
-            }
-        } else {
-            skipped += 1;
+        let oeuvre_id = add_imdb_oeuvre(&tx, new_oeuvre, imdb_id).unwrap();
+        for genre in genres.into_iter().filter(|g| *g != "Animation") {
+            if genre == "\\N" { continue; }
+            add_tag(&tx, oeuvre_id, format!("genre:{genre}")).unwrap();
         }
     }
-    let _ = tx.commit();
+    tx.commit().unwrap();
 }
 
 // Download "name.basics.tsv" & "title.crew.tsv" from https://datasets.imdbws.com/ before running this (and set the file pathes accordingly)
 // NOTE: it takes some RAM
 fn seed_imdb_crews() {
-    let Some(name_map) = get_imdb_name_map() else {
-        return;
-    };
+    let name_map = get_imdb_name_map().unwrap();
 
     let Ok(mut rdr) = csv::ReaderBuilder::new().delimiter(b'\t').from_path("data/title.crew.tsv") else {
         println!("couldn't find or open title.crew.tsv");
@@ -86,12 +81,8 @@ fn seed_imdb_crews() {
         i += 1;
         if i.trailing_zeros() == 18 {
             println!("{i} - (skipped {skipped})");
-            skipped = 0;
         }
-        let Ok(record) = record_res else {
-            skipped += 1;
-            continue;
-        };
+        let record = record_res.unwrap();
         let imdb_id = &record[0];
         let Ok(oeuvre_id) = get_imdb_oeuvre_id(&tx, imdb_id) else {
             skipped += 1;
@@ -125,12 +116,8 @@ fn get_imdb_name_map() -> Option<HashMap<String, String>> {
         i += 1;
         if i.trailing_zeros() == 18 {
             println!("{i} - (skipped {skipped})");
-            skipped = 0;
         }
-        let Ok(record) = record_res else {
-            skipped += 1;
-            continue;
-        };
+        let record = record_res.unwrap();
         if !record[4].contains("writer") && !record[4].contains("director") {
             skipped += 1;
             continue;
@@ -159,25 +146,16 @@ fn seed_imdb_ratings() {
         i += 1;
         if i.trailing_zeros() == 18 {
             println!("{i} - (skipped {skipped})");
-            skipped = 0;
         }
-        let Ok(record) = record_res else {
-            skipped += 1;
-            continue;
-        };
+        let record = record_res.unwrap();
         let imdb_id = &record[0];
-        let Ok(avg_on_10) = record[1].parse::<f32>() else {
-            skipped += 1;
-            continue;
-        };
-        let Ok(n) = record[2].parse::<i32>().map(|n| n as f32) else {
-            skipped += 1;
-            continue;
-        };
         let Ok(oeuvre_id) = get_imdb_oeuvre_id(&tx, imdb_id) else {
             skipped += 1;
             continue;
         };
+
+        let avg_on_10 = record[1].parse::<f32>().unwrap();
+        let n = record[2].parse::<i32>().map(|n| n as f32).unwrap();
         // we take into account the amount of votes n by re-averaging with 10 virtual ratings of 50%
         // (same principle as this https://www.youtube.com/watch?v=8idr1WZ1A7Q)
         let rating_on_10 = (avg_on_10*n + VIRTUAL_RATINGS*5.)/(n+VIRTUAL_RATINGS);
