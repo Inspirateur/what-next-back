@@ -2,3 +2,5 @@
 *.db
 .env
 data/
+tls/
+Rocket.toml
