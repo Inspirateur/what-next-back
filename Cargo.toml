@@ -17,5 +17,5 @@ csv = "*"
 dotenvy = "*"
 jsonwebtoken = "*"
 rusqlite = { version = "*", features = ["bundled"] }
-rocket = { version = "*", features = ["json"] }
+rocket = { version = "*", features = ["json", "tls"] }
 reqwest = "*"
