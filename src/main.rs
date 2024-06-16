@@ -8,6 +8,14 @@ use api_models::*;
 use jwt_auth::*;
 use what_next_back::*;
 
+#[options("/")]
+fn _hello_world() {}
+
+#[get("/")]
+fn hello_world() -> String {
+    "Hello world".to_string()
+}
+
 // CORS boilerplate that really should be handled by Rocket but is unfortunately not.
 #[options("/signup")]
 fn _sign_up() {}
@@ -190,6 +198,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             rated, _rated, 
             rated_auth, _rated_auth, 
             search, _search,
+            hello_world, _hello_world,
         ])
         .launch()
         .await?;
