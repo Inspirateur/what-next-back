@@ -88,7 +88,6 @@ pub struct Reco {
 
 #[derive(Debug)]
 struct Recommenders {
-    user_id: i32,
     similarity: i32,
     recos: Vec<RatedOeuvre>
 }
@@ -153,7 +152,6 @@ fn recommenders(conn: &Connection, user_id: i32, medium: Medium)
                 let user2_id = row.get::<usize, i32>(1)?;
                 let recommender_id = if user1_id == user_id { user2_id } else { user1_id };
                 Ok(Recommenders {
-                    user_id: recommender_id,
                     similarity: row.get::<usize, i32>(2)?,
                     recos: recommendable_oeuvres(conn, recommender_id, user_id, medium)?,
                 })
