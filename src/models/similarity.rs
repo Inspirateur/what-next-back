@@ -167,7 +167,6 @@ fn recommenders(conn: &Connection, user_id: i32, medium: Medium)
 // these users should have the PHC field empty so no one can log into them
 pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Option<Reco>> {
     let recommenders = recommenders(conn, user_id, medium)?;
-    println!("recommenders: {:?}", recommenders);
     let max_similiarity = recommenders.iter().map(|su| su.similarity).max().unwrap_or(0);
     // Compute a softmax of similarities with 1 phatom user at 0 similarity that gives every oeuvre their overall rating
     // This is necessary for a user that has rated few oeuvres
