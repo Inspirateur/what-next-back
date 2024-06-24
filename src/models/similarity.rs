@@ -176,14 +176,14 @@ pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Optio
     // Add the most popular unseen oeuvre in the list
     if let Some(popular_oeuvre) = unseen_popular_oeuvre(conn, user_id, medium)? {
         oeuvres_scored.insert(popular_oeuvre.oeuvre_id, 0.);
-        oeuvres_coverage.insert(popular_oeuvre.oeuvre_id, 0.);
+        oeuvres_coverage.insert(popular_oeuvre.oeuvre_id, phantom_weight);
         oeuvres_overall_rating.insert(popular_oeuvre.oeuvre_id, popular_oeuvre.overall_rating.0 as f32);
     }
     for similar_user in similar_users.into_iter() {
         let user_weight = ((similar_user.similarity-max_similiarity) as f32).exp()/softmax_total;
         for new_oeuvre in recommendable_oeuvres(conn, similar_user.user_id, user_id, medium)? {
             *oeuvres_scored.entry(new_oeuvre.oeuvre_id).or_insert(0.) += AppRating::to_rating_on_100(new_oeuvre.rating.0 as f32)*user_weight;
-            *oeuvres_coverage.entry(new_oeuvre.oeuvre_id).or_insert(0.) += user_weight;
+            *oeuvres_coverage.entry(new_oeuvre.oeuvre_id).or_insert(phantom_weight) += user_weight;
             oeuvres_overall_rating.insert(new_oeuvre.oeuvre_id, new_oeuvre.overall_rating.0 as f32);
         }
     }
