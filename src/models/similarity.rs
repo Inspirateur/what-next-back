@@ -86,11 +86,14 @@ pub struct Reco {
     pub score: RatingOn100,
 }
 
-struct SimilarUser {
+#[derive(Debug)]
+struct Recommenders {
     user_id: i32,
     similarity: i32,
+    recos: Vec<RatedOeuvre>
 }
 
+#[derive(Debug)]
 struct RatedOeuvre {
     oeuvre_id: i32,
     rating: AppRating,
@@ -100,25 +103,6 @@ struct RatedOeuvre {
 struct PopularOeuvre {
     oeuvre_id: i32,
     overall_rating: RatingOn100,
-}
-
-fn similar_users(conn: &Connection, user_id: i32) 
-    -> Result<Vec<SimilarUser>> 
-{
-    conn.prepare_cached(
-        "SELECT user1_id, user2_id, score 
-        FROM users_similarity 
-        WHERE score >= 0 AND (user1_id = ?1 OR user2_id = ?1)")?
-        .query_map(
-            [user_id], 
-            |row| {
-                let user1_id = row.get::<usize, i32>(0)?;
-                let user2_id = row.get::<usize, i32>(1)?;
-                Ok(SimilarUser {
-                    user_id: if user1_id == user_id { user2_id } else { user1_id },
-                    similarity: row.get::<usize, i32>(2)?
-                })
-            })?.collect::<Result<Vec<_>>>()
 }
 
 fn unseen_popular_oeuvre(conn: &Connection, user_id: i32, medium: Medium) -> Result<Option<PopularOeuvre>> {
@@ -155,14 +139,39 @@ fn recommendable_oeuvres(conn: &Connection, recommender_id: i32, recommendee_id:
         )?.collect::<Result<Vec<_>>>()
 }
 
+fn recommenders(conn: &Connection, user_id: i32, medium: Medium) 
+    -> Result<Vec<Recommenders>> 
+{
+    Ok(conn.prepare_cached(
+        "SELECT user1_id, user2_id, score 
+        FROM users_similarity 
+        WHERE score >= 0 AND (user1_id = ?1 OR user2_id = ?1)")?
+        .query_map(
+            [user_id], 
+            |row| {
+                let user1_id = row.get::<usize, i32>(0)?;
+                let user2_id = row.get::<usize, i32>(1)?;
+                let recommender_id = if user1_id == user_id { user2_id } else { user1_id };
+                Ok(Recommenders {
+                    user_id: recommender_id,
+                    similarity: row.get::<usize, i32>(2)?,
+                    recos: recommendable_oeuvres(conn, recommender_id, user_id, medium)?,
+                })
+            })?.collect::<Result<Vec<_>>>()?
+            .into_iter()
+            .filter(|recommender| recommender.recos.len() > 0)
+            .collect())
+}
+
 // TODO: also create fake users representing TAGS of popular oeuvres that like every oeuvre that has their tag
 // these users should have the PHC field empty so no one can log into them
 pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Option<Reco>> {
-    let similar_users = similar_users(conn, user_id)?;
-    let max_similiarity = similar_users.iter().map(|su| su.similarity).max().unwrap_or(0);
+    let recommenders = recommenders(conn, user_id, medium)?;
+    println!("recommenders: {:?}", recommenders);
+    let max_similiarity = recommenders.iter().map(|su| su.similarity).max().unwrap_or(0);
     // Compute a softmax of similarities with 1 phatom user at 0 similarity that gives every oeuvre their overall rating
     // This is necessary for a user that has rated few oeuvres
-    let softmax_total: f32 = similar_users.iter()
+    let softmax_total: f32 = recommenders.iter()
         .map(|su| ((su.similarity-max_similiarity) as f32).exp())
         .sum::<f32>() 
         + (-max_similiarity as f32).exp();
@@ -179,9 +188,9 @@ pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Optio
         oeuvres_coverage.insert(popular_oeuvre.oeuvre_id, phantom_weight);
         oeuvres_overall_rating.insert(popular_oeuvre.oeuvre_id, popular_oeuvre.overall_rating.0 as f32);
     }
-    for similar_user in similar_users.into_iter() {
-        let user_weight = ((similar_user.similarity-max_similiarity) as f32).exp()/softmax_total;
-        for new_oeuvre in recommendable_oeuvres(conn, similar_user.user_id, user_id, medium)? {
+    for recommender in recommenders.into_iter() {
+        let user_weight = ((recommender.similarity-max_similiarity) as f32).exp()/softmax_total;
+        for new_oeuvre in recommender.recos {
             *oeuvres_scored.entry(new_oeuvre.oeuvre_id).or_insert(0.) += AppRating::to_rating_on_100(new_oeuvre.rating.0 as f32)*user_weight;
             *oeuvres_coverage.entry(new_oeuvre.oeuvre_id).or_insert(phantom_weight) += user_weight;
             oeuvres_overall_rating.insert(new_oeuvre.oeuvre_id, new_oeuvre.overall_rating.0 as f32);
