@@ -63,9 +63,6 @@ async fn reco_worker(user_id: i32, medium: Medium) -> Result<String, Status> {
     let Some(reco) = get_reco(&conn, user_id, medium).map_err(|_| Status::InternalServerError)? else {
         return Err(Status::NotFound);
     };
-    if reco.score.0 < 50 {
-        return Err(Status::NotFound);
-    }
     let mut oeuvre: Oeuvre = get_oeuvre(&conn, reco.oeuvre_id).map_err(|_| Status::InternalServerError)?;
     if oeuvre.picture.len() == 0 && matches!(medium, Medium::Movie | Medium::Series | Medium::AnimationMovie) {
         // get imdb picture and synopsis if possible 
