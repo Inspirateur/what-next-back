@@ -167,14 +167,15 @@ pub fn get_reco(conn: &Connection, user_id: i32, medium: Medium) -> Result<Optio
         .sum::<f32>() 
         + (-max_similiarity as f32).exp();
     let phantom_weight = (-max_similiarity as f32).exp()/softmax_total;
-    // Contains weighted user ratings (AppRating), the oeuvre with the max value will be recommended
+    // Contains weighted user ratings rescaled to 100, the oeuvre with the max value will be recommended
     let mut oeuvres_scored: HashMap<i32, f32> = HashMap::new();
     // <oeuvres id, sum of user weight that rated it>
     let mut oeuvres_coverage: HashMap<i32, f32> = HashMap::new();
     // Caching the overall ratings (/100) to avoid re-querying them
     let mut oeuvres_overall_rating: HashMap<i32, f32> = HashMap::new();
+    // Add the most popular unseen oeuvre in the list
     if let Some(popular_oeuvre) = unseen_popular_oeuvre(conn, user_id, medium)? {
-        oeuvres_scored.insert(popular_oeuvre.oeuvre_id, 0.);
+        oeuvres_scored.insert(popular_oeuvre.oeuvre_id, popular_oeuvre.overall_rating.0 as f32);
         oeuvres_coverage.insert(popular_oeuvre.oeuvre_id, phantom_weight);
         oeuvres_overall_rating.insert(popular_oeuvre.oeuvre_id, popular_oeuvre.overall_rating.0 as f32);
     }
