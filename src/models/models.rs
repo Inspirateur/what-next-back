@@ -50,7 +50,7 @@ pub struct NewOeuvre<'a> {
 }
 
 // Raw app rating, values can be: -2, -1, 1, 2
-#[derive(Clone, Copy, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 pub struct AppRating(pub i32);
 
 impl AppRating {
