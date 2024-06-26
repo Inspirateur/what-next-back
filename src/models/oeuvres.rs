@@ -23,7 +23,7 @@ pub fn update_oeuvre(conn: &Connection, oeuvre_id: i32, new_oeuvre: NewOeuvre) -
 }
 
 pub fn get_oeuvre(conn: &Connection, oeuvre_id: i32) -> Result<Oeuvre> {
-    let tags = conn.prepare_cached("SELECT tags.label FROM tags INNER JOIN oeuvre_tags ON oeuvre_tags.oeuvre_id = ?1")?
+    let tags = conn.prepare_cached("SELECT tags.label FROM tags INNER JOIN oeuvre_tags ON oeuvre_tags.oeuvre_id = ?1 AND tags.id = oeuvre_tags.tag_id")?
         .query_map([oeuvre_id], |row| row.get::<usize, String>(0))?.collect::<Result<Vec<_>>>()?;
     conn.prepare_cached("SELECT medium, title, rating, synopsis, picture FROM oeuvres WHERE id = ?1")?
         .query_row([oeuvre_id], |row| Ok(Oeuvre {
